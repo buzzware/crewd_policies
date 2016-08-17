@@ -25,8 +25,8 @@ module CrewdPolicies::Model
 				abilities.each do |a|
 					a = a.to_sym
 					role_rec ||= {}
-					if fields==[:this]
-						role_rec[a] = true unless role_rec[a].to_nil
+					if fields==[:this]  # special "field" to mean the record or class
+						role_rec[a] = true unless (rr = role_rec[a]) && !rr.empty?
 					else
 						role_fields = role_rec[a]
 						role_fields = [] unless role_fields.is_a? Array
@@ -46,7 +46,7 @@ module CrewdPolicies::Model
 			aAbility = aAbility.to_sym
 			raise "aRole must be a string or a symbol" unless aRole.is_a?(String) or aRole.is_a?(Symbol)
 			aRole = aRole.to_sym
-			return [] unless aRole and roles_abilities = self.respond_to?(:roles_abilities) && self.roles_abilities.to_nil
+			return [] unless aRole and roles_abilities = self.respond_to?(:roles_abilities) && !self.roles_abilities.empty? && self.roles_abilities
 
 			fields = []
 			role_keys = roles_abilities.keys.sort
@@ -80,13 +80,14 @@ module CrewdPolicies::Model
 			aAbility = aAbility.to_sym
 			raise "aRole must be a string or a symbol" unless aRole.is_a?(String) or aRole.is_a?(Symbol)
 			aRole = aRole.to_sym
-			return [] unless aRole and roles_abilities = self.respond_to?(:roles_abilities).to_nil && self.roles_abilities
+			return [] unless aRole and roles_abilities = self.respond_to?(:roles_abilities) && self.roles_abilities && !self.roles_abilities.empty? && self.roles_abilities
 
 			role_keys = roles_abilities.keys.sort
 			role_keys.each do |i|
 				next unless i >= aRole
 				next unless role_rec = roles_abilities[i]
-				return true if role_rec[aAbility].to_nil
+				rra = role_rec[aAbility]
+				return true if rra && (!rra.responds_to?(:empty?) || !rra.empty?)
 			end
 			return false
 		end

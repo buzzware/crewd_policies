@@ -1,4 +1,6 @@
 require "crewd_policies/version"
+require "crewd_policies/model"
+require "crewd_policies/policy"
 
 module CrewdPolicies
   # Your code goes here...

@@ -20,7 +20,7 @@ describe "CrewdTestModel" do
 
 	it "attributes described should be available in outer rings" do
 		class CrewdTestModel < ActiveRecord::Base
-			include Concentric::Model
+			include CrewdPolicies::Model
 
 			allow :pleb, read: [:name,:address]
 			allow :pleb, read: [:dob]
