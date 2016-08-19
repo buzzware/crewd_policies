@@ -18,8 +18,16 @@ describe "CrewdTestModel" do
 		# Concentric.config = @original_config
 	end
 
-	it "attributes described should be available in outer rings" do
-		class CrewdTestModel < ActiveRecord::Base
+	it "attributes described on model with allow should be queryable from policy" do
+
+		class Identity < Struct.new(:roles)
+			def has_role?(aRole)
+				roles.include? aRole
+			end
+		end
+
+		class CrewdTestModel
+      include ActiveModel::Model
 			include CrewdPolicies::Model
 
 			allow :pleb, read: [:name,:address]
@@ -27,37 +35,50 @@ describe "CrewdTestModel" do
 			allow :boss, read: [:next_of_kin]
 
 			allow :boss, transmogrify: []
-			allow :boss, eliminate: :this
+			allow :boss, eliminate: true
 
 			allow :pleb, [:cough,:sneeze] => [:desk,:outside]
 		end
 
-		CrewdTestModel.permitted(:pleb,:read).should == [:address,:dob,:name]
-		CrewdTestModel.permitted(:master,:read).should == [:address,:dob,:name,:next_of_kin]
-		CrewdTestModel.permitted(:anyone,:read).should == []
-		CrewdTestModel.allowed?(:pleb,:read).should == true
-		CrewdTestModel.allowed?(:master,:read).should == true
-		CrewdTestModel.allowed?(:anyone,:read).should == false
+		class CrewdTestModelPolicy < CrewdPolicies::BasePolicy
+		end
 
-		CrewdTestModel.allowed?(:pleb,:transmogrify).should == false
-		CrewdTestModel.allowed?(:boss,:transmogrify).should == false
-		CrewdTestModel.allowed?(:master,:transmogrify).should == false
+		pleb = Identity.new(%w(pleb))
+		boss = Identity.new(%w(pleb boss))
+		master = Identity.new(%w(pleb boss master))
+		anyone = Identity.new([])
 
-		CrewdTestModel.allowed?(:pleb,:eliminate).should == false
-		CrewdTestModel.allowed?(:boss,:eliminate).should == true
-		CrewdTestModel.allowed?(:master,:eliminate).should == true
+		pleb_policy = Pundit.policy!(pleb,CrewdTestModel.new)
+		boss_policy = Pundit.policy!(boss,CrewdTestModel.new)
+		master_policy = Pundit.policy!(master,CrewdTestModel.new)
+		anyone_policy = Pundit.policy!(anyone,CrewdTestModel.new)
 
-		CrewdTestModel.allowed?(:pleb,:cough).should == true
-		CrewdTestModel.allowed?(:pleb,:sneeze).should == true
-		CrewdTestModel.allowed?(:boss,:cough).should == true
-		CrewdTestModel.allowed?(:boss,:sneeze).should == true
-		CrewdTestModel.allowed?(:pleb,:cough,:outside).should == true
-		CrewdTestModel.allowed?(:pleb,:cough,:desk).should == true
-		CrewdTestModel.allowed?(:pleb,:cough,[:desk,:outside]).should == true
-		CrewdTestModel.allowed?(:pleb,:cough,:lunch_room).should == false
+		pleb_policy.allowed_attributes(:read).should == %w(address dob name)
+		pleb_policy.read?.should == true
+		master_policy.read?.should == true
+		master_policy.permitted_attributes_for_read.should == %w(address dob name next_of_kin)
+		anyone_policy.permitted_attributes_for_read.should == []
+		anyone_policy.read?.should == false
 
-		CrewdTestModel.permitted(:pleb,:cough).should == [:desk,:outside]
-		CrewdTestModel.permitted(:pleb,:sneeze).should == [:desk,:outside]
+		pleb_policy.allowed?(:transmogrify).should == false
+		boss_policy.allowed?(:transmogrify).should == false
+		master_policy.allowed?(:transmogrify).should == false
+
+		pleb_policy.allowed?(:eliminate).should == false
+		boss_policy.allowed?(:eliminate).should == true
+		master_policy.allowed?(:eliminate).should == true
+
+		pleb_policy.allowed?(:cough).should == true
+		pleb_policy.allowed?(:sneeze).should == true
+		boss_policy.allowed?(:cough).should == true
+		boss_policy.allowed?(:sneeze).should == true
+		pleb_policy.allowed?(:cough,:outside).should == true
+		pleb_policy.allowed?(:cough,:desk).should == true
+		pleb_policy.allowed?(:cough,[:desk,:outside]).should == true
+		pleb_policy.allowed?(:cough,:lunch_room).should == false
+
+		pleb_policy.allowed_attributes(:cough).should == %w(desk outside)
+		pleb_policy.allowed_attributes(:sneeze).should == %w(desk outside)
 	end
 
 

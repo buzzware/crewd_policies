@@ -1,144 +1,182 @@
 require 'active_support/core_ext/class/attribute'
+require 'active_support/core_ext/string/inflections'
 
-class Policy
+module CrewdPolicies
+	module Policy
 
-	class_attribute :filters
+		public
 
-	public
+	  attr_reader :identity, :record
 
-  attr_reader :user, :record, :ability
+		# typical pundit/rails methods
 
-	# CREWD methods
-	def create?
-		inner_query_ability(:create)
-	end
-
-	def read?
-		inner_query_ability(:read)
-	end
-
-	def write?
-		inner_query_ability(:write)
-	end
-
-	def destroy?
-		inner_query_ability(:destroy)
-	end
-
-	# rails methods
-	def index?
-		inner_query_ability(:read)
-	end
-
-	def show?
-		inner_query_ability(:read)
-	end
-
-	def new?
-		inner_query_ability(:create)
-	end
-
-	def update?
-		inner_query_ability(:write)
-	end
-
-	def edit?
-		inner_query_ability(:write)
-	end
-
-	def scope
-		Pundit.policy_scope!(user, record.class)
-	end
-
-	def initialize(user, record)
-    raise Pundit::NotAuthorizedError, "must be logged in" unless user
-    @user = user
-    @record = record
-	end
-
-	def permitted_attributes(aAbility=nil)
-		inner_query_fields(aAbility)
-	end
-
-  def permitted_fields(aAbility=nil)
-	  result = inner_query_fields(aAbility)
-	  cls = record.is_a?(Class) ? record : record.class
-		result.delete_if { |f| cls.reflections.has_key? f }
-		result
-	end
-
-	def permitted_associations(aAbility=nil)
-	  result = inner_query_fields(aAbility)
-	  cls = record.is_a?(Class) ? record : record.class
-		result.delete_if { |f| !cls.reflections.has_key? f }
-		result
-	end
-
-
-
-
-
-
-
-	protected   # internal methods below here
-
-  # this is badly named - should not lead to a 401 HTTP exception - should be forbidden! (403)
-  # def unauthorized!(aMessage=nil)
-  #   raise Pundit::NotAuthorizedError, aMessage||"You are not authorized to perform this action"
-  # end
-
-  def self.allow_filter(aOptions=nil,&block)
-	  aOptions = {all: true} if !aOptions
-	  if roles = aOptions[:role]
-		  roles = [roles] unless roles.is_a? Array
-		  aOptions[:role] = roles.map {|r| r.to_sym }
+		def create?   # resource level
+			inner_query_ability(:create)
 		end
-	  if abilities = aOptions[:ability]
-		  aOptions[:ability] = [abilities] unless abilities.is_a? Array
-	  end
-	  if block
-		  self.filters ||= []
-		  self.filters += [[aOptions,block]]  # double brackets necessary to add an array into the array
+
+		def index?
+			inner_query_ability(:index)
 		end
-  end
 
-	# this could use an alternative field or method in future
-  def user_ring
-	  user.ring
-  end
+		def show?
+			inner_query_ability(:read)
+		end
 
-	def apply_filters(aResult)
-		if self.class.filters
-			self.class.filters.each do |f|
-				options, handler = f
-				unless options[:all]
-					if roles = options[:role]
-						next unless roles.include? user_ring
-					end
-					if abilities = options[:ability]
-						next unless abilities.include? @ability
-					end
-				end
-				aResult = handler.call(self, aResult.clone)   # ring not necessary, use aPolicy.user.ring instead. aAbility not necessary, use aPolicy.ability
+		def new?
+			inner_query_ability(:create)
+		end
+
+		def update?
+			inner_query_ability(:write)
+		end
+
+		def edit?
+			inner_query_ability(:write)
+		end
+
+		def destroy?
+			inner_query_ability(:destroy)
+		end
+
+		%w(write read create update edit show index).each do |m|
+			define_method "permitted_attributes_for_#{m}" do
+				allowed_attributes(m)
 			end
-			aResult.uniq!
-			aResult.sort!
 		end
-		aResult
+
+		def permitted_attributes
+			inner_query_fields('write')
+		end
+
+		# CREWD permission methods
+
+		def read?
+			inner_query_ability(:read)
+		end
+
+		def write?
+			inner_query_ability(:write)
+		end
+
+		# utility methods
+
+		def scope
+			Pundit.policy_scope!(user, record_class)
+		end
+
+		def unauthorized!
+			raise Pundit::NotAuthorizedError, "must be logged in"
+		end
+
+		def forbidden!(aMessage=nil)
+			raise ForbiddenError,(aMessage || "That operation was not allowed")
+		end
+
+		def record_class
+			record.is_a?(Class) ? record : record.class
+		end
+
+		def allowed?(aAbility,aFields=nil)
+			if aFields
+				pf = allowed_fields(aAbility)
+				if aFields.is_a? Array
+					aFields = aFields.map(&:to_s)
+					return (aFields - pf).empty?
+				else
+					aFields = aFields.to_s
+					return pf.include? aFields
+				end
+			else
+				inner_query_resource(aAbility)
+			end
+		end
+
+		# fields may be attributes or associations
+		def allowed_fields(aAbility)
+			inner_query_fields(aAbility)
+		end
+
+	  def allowed_attributes(aAbility)
+		  result = allowed_fields(aAbility)
+		  cls = record_class
+			result.delete_if { |f| cls.reflections.has_key? f } if cls.respond_to? :reflections
+			result
+		end
+
+		def allowed_associations(aAbility=nil)
+		  result = allowed_fields(aAbility)
+		  cls = record_class
+			result.delete_if { |f| !cls.reflections.has_key? f }
+			result
+		end
+
+		protected   # internal methods below here
+
+		def coalesce_field_ability(aAbility)
+			aAbility = aAbility.to_s
+			case aAbility
+				when 'write','read' then aAbility
+				when 'create','update','edit' then 'write'
+				when 'show','index' then 'read'
+				else
+					aAbility
+			end
+		end
+
+
+		# what fields does the identity have this ability for ?
+	  def inner_query_fields(aAbility)
+		  ability = coalesce_field_ability(aAbility)
+
+		  # for each role in roles_abilities, if identity.has_role?(role) && any conditions pass then merge in fields
+		  raise "roles_abilities not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_abilities rescue nil
+			result = []
+		  ra.each do |role,abilities_fields|
+				next unless identity.has_role? role
+				abilities_fields.each do |ab, fields|
+					next unless ab==ability
+					result |= fields
+				end
+			end
+		  result.sort!
+		  result
+	  end
+
+		# does the identity have this ability on this record?
+		def inner_query_resource(aAbility)
+			raise "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
+			aAbility = aAbility.to_s
+
+			raise "roles_abilities not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_abilities rescue nil
+		  ra.each do |role,abilities_fields|
+				next unless identity.has_role? role
+				abilities_fields.each do |ab, fields|
+					next unless ab==aAbility
+					return true if fields==true or fields.is_a?(Array) && !fields.empty?
+				end
+		  end
+			false
+		end
+
+		# does the identity have this ability on the record/resource at all?
+		def inner_query_ability(aAbility)
+			raise "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
+			aAbility = aAbility.to_s
+
+			case aAbility
+				when 'write','read','update','show','edit'
+					inner_query_fields(aAbility).length > 0
+				when 'create','destroy','index'
+					inner_query_resource(aAbility)
+				else
+					raise 'this ability is unknown'
+			end
+		end
 	end
 
-  def inner_query_fields(aAbility=nil)
-	  aAbility = @ability = (aAbility || @ability)
-	  raise "Ability must be set or given" unless aAbility
-	  cls = record.is_a?(Class) ? record : record.class
-	  result = cls.permitted(user_ring,aAbility)
-	  result = apply_filters(result)
-	  result
+	class ForbiddenError < StandardError
+		attr_accessor :query, :record, :policy
   end
-
-	def inner_query_ability(aAbility)
-		@ability = aAbility
-		inner_query_fields.length > 0
-	end
 
 end
+
