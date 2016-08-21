@@ -135,6 +135,7 @@ module CrewdPolicies
 				next unless identity.has_role? role
 				rules.each do |rule| #ab, fields|
 					next unless rule[:ability]==ability
+					next unless eval_conditions rule
 					result |= rule[:fields]
 				end
 			end
@@ -151,11 +152,40 @@ module CrewdPolicies
 		  ra.each do |role,rules|
 				next unless identity.has_role? role
 				rules.each do |rule|
+					next unless eval_conditions rule
 					next unless rule[:ability]==aAbility
 					return true if rule[:allowed]==true or rule[:fields].is_a?(Array) && !rule[:fields].empty?
 				end
 		  end
 			false
+		end
+
+		def eval_conditions(aRule)
+			return true unless conds = aRule[:conditions]
+			if_cond = conds[:if]
+			unless_cond = conds[:unless]
+
+			if_cond = if if_cond.is_a? Symbol
+				send(if_cond)
+			elsif if_cond.is_a? Proc
+				if_cond.call()
+			elsif if_cond==nil
+				true
+			else
+				if_cond
+			end
+
+			unless_cond = if unless_cond.is_a? Symbol
+				send(unless_cond)
+			elsif unless_cond.is_a? Proc
+				unless_cond.call()
+			elsif unless_cond==nil
+				false
+			else
+				unless_cond
+			end
+
+			!!if_cond and !unless_cond
 		end
 
 		# does the identity have this ability on the record/resource at all?

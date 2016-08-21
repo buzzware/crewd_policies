@@ -31,7 +31,7 @@ module CrewdPolicies::Model
 				abilities.each do |a|
 					role_rules << (rule = {})
 					rule[:ability] = a
-					rule[:conditions] = conditions
+					rule[:conditions] = conditions unless conditions.empty?
 					if fields==true  # special "field" value to mean the record or class
 						rule[:allowed] = true
 					else

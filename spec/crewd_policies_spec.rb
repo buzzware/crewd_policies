@@ -71,7 +71,7 @@ context "allow attributes on model then check policy" do
 
 	context "conditional attribute examples" do
 
-		class IdentityB < Struct.new(:roles)
+		class IdentityB < Struct.new(:id,:roles)
 			#include ActiveModel::Model
 			include CrewdPolicies::Model
 
@@ -85,11 +85,11 @@ context "allow attributes on model then check policy" do
 			allow :master, [:read,:write] => %w(name address)
 		end
 
-		let (:junior) { IdentityB.new(%w(junior)) }
-		let (:junior2) { IdentityB.new(%w(junior)) }
-		let (:boss) { IdentityB.new(%w(junior boss)) }
-		let (:master) { IdentityB.new(%w(junior boss master)) }
-		let (:anyone) { IdentityB.new([]) }
+		let (:junior) { IdentityB.new(1,%w(junior)) }
+		let (:junior2) { IdentityB.new(2,%w(junior)) }
+		let (:boss) { IdentityB.new(3,%w(junior boss)) }
+		let (:master) { IdentityB.new(4,%w(junior boss master)) }
+		let (:anyone) { IdentityB.new(5,[]) }
 
 		class IdentityBPolicy < CrewdPolicies::BasePolicy
 			def is_self?
@@ -97,7 +97,7 @@ context "allow attributes on model then check policy" do
 			end
 
 			def is_subordinate?
-				identity.has_role?('master') && !record.has_role?('master')
+				identity.has_role?('master') && !record.has_role?('master') or
 				identity.has_role?('boss') && !record.has_role?('boss')
 			end
 		end
