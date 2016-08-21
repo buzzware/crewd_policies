@@ -23,120 +23,137 @@ Or install it yourself as:
 The happy path that CREWD policies enables is as follows :
 
  1) include CrewdPolicies::Model into your models
- 	eg.
  	
- 	class Person < ActiveRecord::Base
- 		include CrewdPolicies::Model
- 	end
+ ```ruby	
+ class Person < ActiveRecord::Base
+   include CrewdPolicies::Model
+ end
+ ```
  
  
  2) declare constant arrays of field names, grouped to suit your application 
- 	eg. 
- 		USER_EDITABLE_FIELDS = [:name,:address]
- 		ADMIN_FIELDS = [:roles]
- 		ALL_FIELDS = ADMIN_FIELDS + USER_EDITABLE_FIELDS
+ 
+ ```ruby
+ USER_EDITABLE_FIELDS = [:name,:address]
+ ADMIN_FIELDS = [:roles]
+ ALL_FIELDS = ADMIN_FIELDS + USER_EDITABLE_FIELDS
+ ```
  		
  
  3) declare permissions using *allow()* and your constant arrays in your model
-	eg.
-	 
- 	class Customer < ActiveRecord::Base
- 		include CrewdPolicies::Model
+	
+ ```ruby
+ class Customer < ActiveRecord::Base
+   include CrewdPolicies::Model
  		
- 		PUBLIC_FIELDS = [:name]
- 		USER_EDITABLE_FIELDS = [:name,:address]
- 		ADMIN_FIELDS = [:roles]
- 		ALL_FIELDS = ADMIN_FIELDS + USER_EDITABLE_FIELDS
+   PUBLIC_FIELDS = [:name]
+   USER_EDITABLE_FIELDS = [:name,:address]
+   ADMIN_FIELDS = [:roles]
+   ALL_FIELDS = ADMIN_FIELDS + USER_EDITABLE_FIELDS
  		 		
- 		allow :sales, :create => :this
- 		allow :sales, :read => ALL_FIELDS
- 		allow :sales, :write => USER_EDITABLE_FIELDS
+   allow :sales, :create => :this
+   allow :sales, :read => ALL_FIELDS
+   allow :sales, :write => USER_EDITABLE_FIELDS
  		
- 		allow :admin, :write => ALL_FIELDS
- 		allow :admin, :destroy => :this 		
- 	end
+   allow :admin, :write => ALL_FIELDS
+   allow :admin, :destroy => :this 		
+ end
+ ```
  
- 	4) include CrewdPolicies::Policy into your ApplicationPolicy or individual model policies. You will also need the Scope inner class defined on your application and/or individual model policies :  
+ 4) include CrewdPolicies::Policy into your ApplicationPolicy or individual model policies. You will also need the Scope inner class defined on your application and/or individual model policies :  
  	
-		class ApplicationPolicy < Struct.new(:identity, :subject)
-			include CrewdPolicies::Policy
+ ```ruby
+ class ApplicationPolicy < Struct.new(:identity, :subject)
+  include CrewdPolicies::Policy
 			
-			class Scope < Struct.new(:identity, :scope)
-				def resolve
-					scope.where(...your criteria...)
-				end
-			end		
-		end 	
+  class Scope < Struct.new(:identity, :scope)
+    def resolve
+      scope.where(...your criteria...)
+    end
+  end		
+end 	
  	 	
-		class CustomerPolicy < Struct.new(:identity, :subject)	
-		end
+class CustomerPolicy < Struct.new(:identity, :subject)	
+end
+```
 		
-	5) your User or Identity model must have a has_role?(aRole) method
+5) your User or Identity model must have a has_role?(aRole) method
  
  You now have a valid pundit policy that can be used like any other.
  
+ **Parameters**
+ 
+ `aRole`: a single string or symbol; or an array of strings and/or symbols
+ `aAbilities`: a hash where -
+  - `keys` are a single string or symbol; or an array of strings and/or symbols 
+  - `values` are true, or a single string or symbol; or an array of strings and/or symbols
+ 
+```ruby
 ### Allow Syntax
 
 The allow method is declared as :
  
-def allow(
-	aRole,			# a single string or symbol; or an array of strings and/or symbols
-	aAbilities	# a hash where :
-							#		* keys are a single string or symbol; or an array of strings and/or symbols 
-							#		* values are true, or a single string or symbol; or an array of strings and/or symbols
-)
+def allow(aRole, aAbilities)
+end
+```
 
 It is used on the model class as follows :
 
+```ruby
 allow <role>, <abilities> => <fields>
+```
  
 Typical examples :
 
-* allow :sales, :index => true		# sales role can create any record in scope
-* allow [:finance, :marketing], [:create,:destroy,:index] => true
-* allow :sales, :read => :name
-* allow :sales, :read => [:address,:phone]
-* allow :reception, [:read,:write] => [:address,:phone]
+```ruby
+allow :sales, :index => true		# sales role can create any record in scope
+allow [:finance, :marketing], [:create,:destroy,:index] => true
+allow :sales, :read => :name
+allow :sales, :read => [:address,:phone]
+allow :reception, [:read,:write] => [:address,:phone]
+```
  
 ### Controller Examples
 
+```ruby
 def index	
-	@posts = authorize policy_scope!(Post)
-	# use per post @attributes = @post.attributes.slice permitted_attributes(@post)
+  @posts = authorize policy_scope!(Post)
+  # use per post @attributes = @post.attributes.slice permitted_attributes(@post)
 end
 
 def show	
-	@post = authorize policy_scope!(Post).find(params[:id])
-	@attributes = @post.attributes.slice permitted_attributes(@post)
+  @post = authorize policy_scope!(Post).find(params[:id])	
+  @attributes = @post.attributes.slice permitted_attributes(@post)
 end
 
 def create
-	pars = params.require(:post).permit policy!(Post).permitted_attributes
-	@post = authorize policy_scope!(Post).create!(pars)	
+  pars = params.require(:post).permit policy!(Post).permitted_attributes
+  @post = authorize policy_scope!(Post).create!(pars)	
 end
 
 def update
-	@post = authorize policy_scope!(Post).find(params[:id])
-	pars = params.require(:post).permit policy!(Post).permitted_attributes
+  @post = authorize policy_scope!(Post).find(params[:id])
+  pars = params.require(:post).permit policy!(Post).permitted_attributes
   @post.update_attributes(pars)
   @post.save!
 end
 
 def destroy
-	@post = authorize policy_scope!(Post).find(params[:id])
-	@post.destroy!
+  @post = authorize policy_scope!(Post).find(params[:id])
+  @post.destroy!
 end
+```
  
 ## Core Assumptions
 
 CREWD Policies builds policies based on the core assumption that by declaring the following permissions, a complete permissions system can be derived by code for 90+% of models down to the field level : 
 
-	1. scope for the resource 
-	1. create for the resource 
-	1. readable fields
-	1. writeable fields  
-	1. delete for a record
-	1. normal Rails model validations for validating field values
+	- scope for the resource 
+	- create for the resource 
+	- readable fields
+	- writeable fields  
+	- delete for a record
+	- normal Rails model validations for validating field values
 
 Expanding on the above :
 
@@ -159,9 +176,9 @@ Expanding on the above :
 
 ## User/Identity Model Assumptions
 
-1. *User or Identity Model* : Traditional Rails applications have a User model which maps to a database table of users. An emerging architecture pattern uses JSON Web Tokens (http://jwt.io) to represent an identity managed by an external provider. Applications then will typically need an additional model eg. Person for attaching persisted data to that provided by the identity token. I have had success creating an Identity model; not backed by the database but created in memory by decoding the JWT. It then has methods for loading a Person model if required. This is how we intend to do things in future, and so the property name I am using here is "identity", but I also use an alias of user pointing referring to it.
+1. *User or Identity Model* : Traditional Rails applications have a User model which maps to a database table of users. An emerging architecture pattern uses JSON Web Tokens (http://jwt.io) to represent an identity managed by an external provider. Applications then will typically need an additional model eg. `Person` for attaching persisted data to that provided by the identity token. I have had success creating an `Identity` model; not backed by the database but created in memory by decoding the JWT. It then has methods for loading a `Person` model if required. This is how we intend to do things in future, and so the property name I am using here is `identity`, but I also use an alias of user pointing referring to it.
 
-2. *identity.has_role?(aRole)* : In order to interrogate the roles assigned the identity has, the method has_role?(aRole) must be implemented to receive a role string or symbol, and return true or false. 
+2. `identity.has_role?(aRole)` : In order to interrogate the roles assigned the `identity` has, the method `has_role?(aRole)` must be implemented to receive a role string or symbol, and return true or false. 
 
 ## Derived Application Requirements 
 
@@ -178,13 +195,13 @@ This should meet the access control needs for the vast majority of Rails project
 
 ## Why Pundit::NotAuthorizedError is misleading
 
-Pundit defines this error, and raises it when the authorize method rejects a query. Unfortunately, in this case, Pundit users could easily assume they should return the HTTP status "401 Unauthorized", but this would be against the definition for this status code.
+`Pundit` defines this error, and raises it when the authorize method rejects a query. Unfortunately, in this case, Pundit users could easily assume they should return the HTTP status `401 Unauthorized`, but this would be against the definition for this status code.
  
- "The request has not been applied because it lacks valid authentication credentials for the target resource" - https://httpstatuses.com/401
+ > "The request has not been applied because it lacks valid authentication credentials for the target resource" - https://httpstatuses.com/401
  
 Failing pundit checks rarely has anything to do with a lack of credentials, the failure is more likely a case of 
   
- "The server understood the request but refuses to authorize it." - https://httpstatuses.com/403
+ > "The server understood the request but refuses to authorize it." - https://httpstatuses.com/403
 
 It gets even worse if you follow a pattern in your client of forcing a logout of the user when they receive a 401, which makes sense when 401 is used correctly. The result is that attempting anything not allowed by a policy causes the user to be logged out, when they should simply be shown an alert and given the opportunity to correct the error or do something else while maintaining their session.
 
@@ -192,15 +209,35 @@ Pundit does have this in the README https://github.com/elabs/pundit#rescuing-a-d
 
 https://github.com/elabs/pundit/issues/412
 
-As an initial mitigation, crewd-policies provides the CrewdPolicies::ForbiddenError exception and the forbidden! method.
+As an initial mitigation, crewd-policies provides the `CrewdPolicies::ForbiddenError` exception and the `forbidden!` method.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, to install dependencies run:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+    bin/setup
 
-To experiment with this gem, run `bin/console` for an interactive prompt.
+Then, run tests with:
+
+    rake spec
+
+For an  interactive prompt that will allow you to experiment, you can also run
+
+    bin/console
+
+To install this gem onto your local machine, run 
+
+    bundle exec rake install
+    
+To release a new version, update the version number in `version.rb`, and then run
+
+    bundle exec rake release
+
+`rake release` will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+
+To experiment with this gem with interactive prompt, run
+
+     bin/console
 
 ## Contributing
 
@@ -224,37 +261,45 @@ SuperPundit
 
 
 
-create? - resource_create? & model validation (RESOURCE LEVEL)
-read? - in scope & >0 readable attributes (FIELD LEVEL)
-write? - in scope & >0 writeable attributes & model validation (FIELD LEVEL)
-destroy? - in scope & record_destroy? (RECORD LEVEL)
+`create?` - resource_create? & model validation (RESOURCE LEVEL)
+`read?` - in scope & >0 readable attributes (FIELD LEVEL)
+`write?` - in scope & >0 writeable attributes & model validation (FIELD LEVEL)
+`destroy?` - in scope & record_destroy? (RECORD LEVEL)
 
 aliases :
-show?
-update?
-index?
-delete?
+`show?`
+`update?`
+`index?`
+`delete?`
 
 
 === protected methods implemented for each resource
 
+```ruby
 Policy.new(identity,Model).resource_create?	// from the model for roles
 Policy.new(identity,model).record_destroy?	// from the model for roles
 Policy.new(identity,model).read_attributes  // from the model for roles
 Policy.new(identity,model).write_attributes  // from the model for roles
 Scope.exists?
+```
 
 
 On Model :
 
+```ruby
 allow [:staff,:provider_admin], write: EDITABLE_FIELDS, read: ALL_FIELDS
 allow :staff, [:create] => :this
 allow :dealer_admin, [:destroy] => :this
+```
 
 ! Still need code override eg. for reading all records but only writing own, but perhaps we can add when clause :
 
+```ruby
 allow :staff, [:destroy] => :this, when: ->(identity,model) { !model.published }
+```
+
 OR
+
+```ruby
 allow :staff, [:destroy] => :this, when: :staff_can_destroy? # def staff_can_destroy? on policy
-
-
+```
