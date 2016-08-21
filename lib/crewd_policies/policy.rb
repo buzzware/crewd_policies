@@ -128,14 +128,14 @@ module CrewdPolicies
 	  def inner_query_fields(aAbility)
 		  ability = coalesce_field_ability(aAbility)
 
-		  # for each role in roles_abilities, if identity.has_role?(role) && any conditions pass then merge in fields
-		  raise "roles_abilities not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_abilities rescue nil
+		  # for each role in roles_rules, if identity.has_role?(role) && any conditions pass then merge in fields
+		  raise "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
 			result = []
-		  ra.each do |role,abilities_fields|
+		  ra.each do |role,rules|
 				next unless identity.has_role? role
-				abilities_fields.each do |ab, fields|
-					next unless ab==ability
-					result |= fields
+				rules.each do |rule| #ab, fields|
+					next unless rule[:ability]==ability
+					result |= rule[:fields]
 				end
 			end
 		  result.sort!
@@ -147,12 +147,12 @@ module CrewdPolicies
 			raise "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
 			aAbility = aAbility.to_s
 
-			raise "roles_abilities not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_abilities rescue nil
-		  ra.each do |role,abilities_fields|
+			raise "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
+		  ra.each do |role,rules|
 				next unless identity.has_role? role
-				abilities_fields.each do |ab, fields|
-					next unless ab==aAbility
-					return true if fields==true or fields.is_a?(Array) && !fields.empty?
+				rules.each do |rule|
+					next unless rule[:ability]==aAbility
+					return true if rule[:allowed]==true or rule[:fields].is_a?(Array) && !rule[:fields].empty?
 				end
 		  end
 			false
