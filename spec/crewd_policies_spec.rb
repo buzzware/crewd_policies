@@ -2,13 +2,13 @@ require 'spec_helper'
 
 context "allow attributes on model then check policy" do
 
-	context "simple attribute examples" do
-
-		class IdentityA < Struct.new(:roles)
-			def has_role?(aRole)
-				roles.include? aRole
-			end
+	class IdentityA < Struct.new(:roles)
+		def has_role?(aRole)
+			roles.include? aRole
 		end
+	end
+
+	context "simple attribute examples" do
 
 		let (:junior) { IdentityA.new(%w(junior)) }
 		let (:junior2) { IdentityA.new(%w(junior)) }
@@ -20,9 +20,11 @@ context "allow attributes on model then check policy" do
 			include ActiveModel::Model
 			include CrewdPolicies::Model
 
-			allow :junior, read: [:name,:address]
+			allow :junior, %w(read write) => [:name,:address]
+			allow :junior, index: true
 			allow :junior, read: [:dob]
 			allow :boss, read: [:next_of_kin]
+			allow :boss, %w(create destroy) => true
 
 			allow :boss, transmogrify: []
 			allow :boss, eliminate: true
@@ -66,6 +68,20 @@ context "allow attributes on model then check policy" do
 
 			junior_policy.allowed_attributes(:cough).should == %w(desk outside)
 			junior_policy.allowed_attributes(:sneeze).should == %w(desk outside)
+		end
+
+		it "check resource abilities" do
+			junior_policy.allowed?(:index).should == true
+			junior_policy.allowed?(:create).should == false
+			junior_policy.allowed?(:destroy).should == false
+
+			boss_policy.allowed?(:index).should == true
+			boss_policy.allowed?(:create).should == true
+			boss_policy.allowed?(:destroy).should == true
+
+			master_policy.allowed?(:index).should == true
+			master_policy.allowed?(:create).should == true
+			master_policy.allowed?(:destroy).should == true
 		end
 	end
 
