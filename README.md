@@ -135,6 +135,46 @@ end
 ```
   
 Note that without the if condition, any user would be able to write any user's password.
+
+## Derived Application Requirements 
+
+Typical Rails application policy requirements can then be derived from the above without additional implementation code.
+
+Each permission requires different combinations of >=1 read/write fields and the true flag :
+   
+| CREWD policy method | >= 1 read fields 	| >=1 write fields 												| true flag 
+| :---                |     :---:        	|     :---:        												| :---
+| create?   					| 								 	| allow :user, :write => %w(name address) | allow :user, :create => true
+| read?     					| allow :user, :read => %w(name address)
+| write?   					|        						| allow :user, :write => %w(name address) |
+| destroy?  					|        						|       																	| allow :user, :destroy => true
+| index?    					| allow :user, :read => %w(name address)       						|       																	| allow :user, :index => true
+   
+The above CREWD policy methods are then aliased to provide typical Rails policy methods as follows 
+
+| Rails policy method | CREWD policy method 	| 
+| :---                |     :---        	|
+| create?   					| create?								 	|
+| show?   					| read?								 	|
+| update?   					| write?								 	|
+| edit?   					| write?								 	|
+| index?   					| index?								 	|
+| delete?   					| destroy?								 	|
+| destroy?   					| destroy?								 	|
+
+Other Pundit conventional Rails methods are also provided :
+
+* the following permitted attributes for "strong parameters" :  
+	* permitted_attributes (equivalent to permitted_attributes_for_write) 
+	* permitted_attributes_for_write 
+	* permitted_attributes_for_read 
+	* permitted_attributes_for_create 
+	* permitted_attributes_for_update 
+	* permitted_attributes_for_edit 
+	* permitted_attributes_for_show 
+	* permitted_attributes_for_index 
+
+This should meet the access control needs for the vast majority of Rails projects.  
   
 ### Controller Examples
 
@@ -202,19 +242,6 @@ Expanding on the above :
 1. *User or Identity Model* : Traditional Rails applications have a User model which maps to a database table of users. An emerging architecture pattern uses JSON Web Tokens (http://jwt.io) to represent an identity managed by an external provider. Applications then will typically need an additional model eg. `Person` for attaching persisted data to that provided by the identity token. I have had success creating an `Identity` model; not backed by the database but created in memory by decoding the JWT. It then has methods for loading a `Person` model if required. This is how we intend to do things in future, and so the property name I am using here is `identity`, but I also use an alias of user pointing referring to it.
 
 2. `identity.has_role?(aRole)` : In order to interrogate the roles assigned the `identity` has, the method `has_role?(aRole)` must be implemented to receive a role string or symbol, and return true or false. 
-
-## Derived Application Requirements 
-
-Typical Rails application policy requirements can then derived or simply aliases from the above, without additional implementation, including :
-  
-* show?
-* update?
-* index?
-* delete?
-* selectable attributes
-* permitted attributes for "strong parameters"
-
-This should meet the access control needs for the vast majority of Rails projects.  
 
 ## Why Pundit::NotAuthorizedError is misleading
 
