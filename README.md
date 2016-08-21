@@ -113,6 +113,29 @@ allow :sales, :read => [:address,:phone]
 allow :reception, [:read,:write] => [:address,:phone]
 ```
  
+### Allow Conditions
+ 
+An allow statement can be made conditional by adding an :if or :unless key.
+The value should be a symbol matching the name of a method with no parameters on the policy.
+ 
+For example, we want users to be able to edit their own password :
+
+on model :
+
+```ruby
+allow :user, write: :password, if: :is_self?
+```
+
+on policy :
+
+```ruby
+def is_self?
+	record and !record.is_a?(Class) and record.id==identity.id
+end
+```
+  
+Note that without the if condition, any user would be able to write any user's password.
+  
 ### Controller Examples
 
 ```ruby
