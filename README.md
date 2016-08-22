@@ -138,32 +138,17 @@ Note that without the if condition, any user would be able to write any user's p
 
 ### Required allow declarations for a full CRUD policy in Rails
 
-In order to allow full CRUD on a resource in a Rails application, you will need to write allow declarations for each of the following abilities :
+In order to implement a policy that allows full CRUD on a resource in a Rails application, you will need to write allow declarations for each of the following abilities :
 
-| Allow Ability | Example  
-| :---          | :---    
-| create				| allow :user, create: true
-| read					| allow :user, read: %w(name address)
-| write					| allow :user, write: %w(name address password)
-| destroy				| allow :user, destroy: true
-| index					| allow :user, index: true
+| CREWD policy method | Example  																			| Probably also needed
+| :---          | :---    																			| :---
+| create?				| allow :user, create: true											| allow :user, :write => %w(name address)
+| read?					| allow :user, read: %w(name address)						| 
+| write?					| allow :user, write: %w(name address password)	|
+| destroy?				| allow :user, destroy: true										|
+| index?					| allow :user, index: true											| allow :user, :read => %w(name address)
 
-## Derived Application Requirements 
-
-Typical Rails application policy requirements can then be derived from the above without additional implementation code.
-
-For each of these boolean permissions to return true, the **bold** allow declarations are required. The other declarations are most likely needed according to your application ie there probably isn't much use in create or index without allowing any fields.
-
-Note that for normal Rails CRUD requirements, fields are only declared for read and write
-
-   
-| CREWD policy method | >= 1 read fields 	| >=1 write fields 												| true flag 
-| :---                |     :---:        	|     :---:        												| :---
-| create?   					| 								 	| allow :user, :write => %w(name address) | **allow :user, :create => true**
-| read?     					| **allow :user, :read => %w(name address)**
-| write?   					|        						| **allow :user, :write => %w(name address)** |
-| destroy?  					|        						|       																	| **allow :user, :destroy => true**
-| index?    					| allow :user, :read => %w(name address)       						|       																	| **allow :user, :index => true**
+Note that for normal Rails CRUD requirements, fields are only declared for read and write, while true is only given for create, destroy and index. Your own abilities may be declared and queried with either true or an array of fields with no special requirements.
    
 The above CREWD policy methods are then aliased to provide typical Rails policy methods as follows 
 
@@ -313,58 +298,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/[USERN
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
-## Notes
-
-SuperPundit
-
-=== public methods
-
-| Pundit method | Center-aligned | Right-aligned |
-| :---         |     :---:      |          ---: |
-| create?   | git status     | git status    |
-| read?     | git diff       | git diff      |
-
-
-
-`create?` - resource_create? & model validation (RESOURCE LEVEL)
-`read?` - in scope & >0 readable attributes (FIELD LEVEL)
-`write?` - in scope & >0 writeable attributes & model validation (FIELD LEVEL)
-`destroy?` - in scope & record_destroy? (RECORD LEVEL)
-
-aliases :
-`show?`
-`update?`
-`index?`
-`delete?`
-
-
-=== protected methods implemented for each resource
-
-```ruby
-Policy.new(identity,Model).resource_create?	// from the model for roles
-Policy.new(identity,model).record_destroy?	// from the model for roles
-Policy.new(identity,model).read_attributes  // from the model for roles
-Policy.new(identity,model).write_attributes  // from the model for roles
-Scope.exists?
-```
-
-
-On Model :
-
-```ruby
-allow [:staff,:provider_admin], write: EDITABLE_FIELDS, read: ALL_FIELDS
-allow :staff, [:create] => :this
-allow :dealer_admin, [:destroy] => :this
-```
-
-! Still need code override eg. for reading all records but only writing own, but perhaps we can add when clause :
-
-```ruby
-allow :staff, [:destroy] => :this, when: ->(identity,model) { !model.published }
-```
-
-OR
-
-```ruby
-allow :staff, [:destroy] => :this, when: :staff_can_destroy? # def staff_can_destroy? on policy
-```
