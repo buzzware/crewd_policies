@@ -38,6 +38,7 @@ module CrewdPolicies::Model
 					if fields==true  # special "field" value to mean the record or class
 						rule[:allowed] = true
 					else
+						raise "create, destroy and index must have true as a value, not an array of fields" if a=='create' or a=='destroy' or a=='index'
 						rule[:fields] = fields
 					end
 				end

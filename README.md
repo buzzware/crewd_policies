@@ -88,11 +88,11 @@ end
   - `keys` are a single string or symbol; or an array of strings and/or symbols 
   - `values` are true, or a single string or symbol; or an array of strings and/or symbols
  
-```ruby
 ### Allow Syntax
 
 The allow method is declared as :
  
+```ruby
 def allow(aRole, aAbilities)
 end
 ```
@@ -136,19 +136,34 @@ end
   
 Note that without the if condition, any user would be able to write any user's password.
 
+### Required allow declarations for a full CRUD policy in Rails
+
+In order to allow full CRUD on a resource in a Rails application, you will need to write allow declarations for each of the following abilities :
+
+| Allow Ability | Example  
+| :---          | :---    
+| create				| allow :user, create: true
+| read					| allow :user, read: %w(name address)
+| write					| allow :user, write: %w(name address password)
+| destroy				| allow :user, destroy: true
+| index					| allow :user, index: true
+
 ## Derived Application Requirements 
 
 Typical Rails application policy requirements can then be derived from the above without additional implementation code.
 
-Each permission requires different combinations of >=1 read/write fields and the true flag :
+For each of these boolean permissions to return true, the **bold** allow declarations are required. The other declarations are most likely needed according to your application ie there probably isn't much use in create or index without allowing any fields.
+
+Note that for normal Rails CRUD requirements, fields are only declared for read and write
+
    
 | CREWD policy method | >= 1 read fields 	| >=1 write fields 												| true flag 
 | :---                |     :---:        	|     :---:        												| :---
-| create?   					| 								 	| allow :user, :write => %w(name address) | allow :user, :create => true
-| read?     					| allow :user, :read => %w(name address)
-| write?   					|        						| allow :user, :write => %w(name address) |
-| destroy?  					|        						|       																	| allow :user, :destroy => true
-| index?    					| allow :user, :read => %w(name address)       						|       																	| allow :user, :index => true
+| create?   					| 								 	| allow :user, :write => %w(name address) | **allow :user, :create => true**
+| read?     					| **allow :user, :read => %w(name address)**
+| write?   					|        						| **allow :user, :write => %w(name address)** |
+| destroy?  					|        						|       																	| **allow :user, :destroy => true**
+| index?    					| allow :user, :read => %w(name address)       						|       																	| **allow :user, :index => true**
    
 The above CREWD policy methods are then aliased to provide typical Rails policy methods as follows 
 
