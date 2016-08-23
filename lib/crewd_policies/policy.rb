@@ -44,6 +44,16 @@ module CrewdPolicies
 			end
 		end
 
+		def all_attributes
+			result = []
+			record_class.roles_rules.each do |role,rules|
+				rules.each do |rule|
+					result |= rule[:fields] if rule[:fields]
+				end
+			end
+			result.sort
+		end
+
 		def permitted_attributes
 			inner_query_fields('write')
 		end

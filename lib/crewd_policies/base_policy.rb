@@ -33,6 +33,10 @@ module CrewdPolicies
 	    def model_class
 	      @policy_class ||= (self.class.name.sub(/Policy::Scope$/,'').safe_constantize or @scope)
 	    end
+
+			def resolve
+				scope
+			end
 		end
 	end
 end
