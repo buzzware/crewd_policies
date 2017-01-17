@@ -17,6 +17,10 @@ module CrewdPolicies::Model
 		#
 		# allow :sales, :write => [:name,:address]   ie. sales can write the name and address fields
 		def allow(aRole,aAbilities)
+			if aRole.is_a? Array
+				aRole.each {|r| allow(r,aAbilities.dup) }
+				return
+			end
 			raise "aRole must be a string or a symbol" unless aRole.is_a?(String) or aRole.is_a?(Symbol)
 			aRole = aRole.to_s
 			raise "aAbilities must be a Hash" unless aAbilities.is_a? Hash # eg. :write => [:name,:address]
