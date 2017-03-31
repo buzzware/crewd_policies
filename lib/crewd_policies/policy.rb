@@ -1,8 +1,11 @@
 require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/string/inflections'
+require 'standard_exceptions'
 
 module CrewdPolicies
 	module Policy
+
+		include ::StandardExceptions::Methods
 
 		public
 
@@ -74,8 +77,8 @@ module CrewdPolicies
 			Pundit.policy_scope!(user, record_class)
 		end
 
-		def unauthorized!
-			raise Pundit::NotAuthorizedError, "must be logged in"
+		def unauthorized!(aMessage=nil)
+			raise Pundit::NotAuthorizedError,(aMessage || "must be logged in")
 		end
 
 		def forbidden!(aMessage=nil)
@@ -136,10 +139,13 @@ module CrewdPolicies
 
 		# what fields does the identity have this ability for ?
 	  def inner_query_fields(aAbility)
+		  internal_server_error! "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
+		  unauthorized! "identity not given" if !identity
+		  internal_server_error! "identity must implement has_role?" if !identity.responds_to? :has_role?
+
 		  ability = coalesce_field_ability(aAbility)
 
 		  # for each role in roles_rules, if identity.has_role?(role) && any conditions pass then merge in fields
-		  raise "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
 			result = []
 		  ra.each do |role,rules|
 				next unless identity.has_role? role
@@ -155,10 +161,13 @@ module CrewdPolicies
 
 		# does the identity have this ability on this record?
 		def inner_query_resource(aAbility)
-			raise "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
+			internal_server_error! "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
+			internal_server_error! "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
+			unauthorized! "identity not given" if !identity
+	    internal_server_error! "identity must implement has_role?" if !identity.respond_to? :has_role?
+
 			aAbility = aAbility.to_s
 
-			raise "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
 		  ra.each do |role,rules|
 				next unless identity.has_role? role
 				rules.each do |rule|
@@ -214,9 +223,11 @@ module CrewdPolicies
 		end
 	end
 
-	class ForbiddenError < StandardError
+	class ForbiddenError < ::StandardExceptions::Http::Forbidden
 		attr_accessor :query, :record, :policy
   end
 
+	::Pundit::NotAuthorizedError.class_eval do
+		include ::StandardExceptions::ExceptionInterface
+	end
 end
-

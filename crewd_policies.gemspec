@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["gary@buzzware.com.au"]
 
   spec.summary       = %q{A happy path for writing DRY Pundit policies}
-  #spec.description   = %q{A happy path for writing DRY Pundit policies}
+  spec.description   = %q{CrewdPolicies enables conventional Pundit (https://github.com/elabs/pundit) policies to be written using an opinionated pattern based on declarative Create, Read, Execute (optional), Write and Destroy (CREWD) permissions for each resource. Conventional pundit create?, show?, update? and destroy? permissions are automatically derived from these, as well as permitted_attributes/strong parameters.}
   spec.homepage      = "https://github.com/buzzware/crewd_policies"
   spec.license       = "MIT"
 
@@ -27,7 +27,8 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency "pundit"
+  spec.add_runtime_dependency "pundit", '~> 1.1', '>= 1.1.0'
+  spec.add_runtime_dependency "standard_exceptions", '~> 0.1.4', '>= 0.1.4.0'
   spec.add_development_dependency "bundler", "~> 1.12"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
