@@ -1,5 +1,6 @@
 require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/string/inflections'
+require 'pundit'
 require 'standard_exceptions'
 
 module CrewdPolicies
@@ -141,7 +142,7 @@ module CrewdPolicies
 	  def inner_query_fields(aAbility)
 		  internal_server_error! "roles_rules not found on #{record_class.name}, make sure it has \"include CrewdPolicies::Model\"" unless ra = record_class.roles_rules rescue nil
 		  unauthorized! "identity not given" if !identity
-		  internal_server_error! "identity must implement has_role?" if !identity.responds_to? :has_role?
+		  internal_server_error! "identity must implement has_role?" if !identity.respond_to? :has_role?
 
 		  ability = coalesce_field_ability(aAbility)
 
@@ -209,7 +210,7 @@ module CrewdPolicies
 
 		# does the identity have this ability on the record/resource at all?
 		def inner_query_ability(aAbility)
-			raise "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
+			internal_server_error! "aAbility must be a string or a symbol" unless aAbility.is_a?(String) or aAbility.is_a?(Symbol)
 			aAbility = aAbility.to_s
 
 			case aAbility
@@ -218,7 +219,7 @@ module CrewdPolicies
 				when 'create','destroy','index'
 					inner_query_resource(aAbility)
 				else
-					raise 'this ability is unknown'
+					internal_server_error! 'this ability is unknown'
 			end
 		end
 	end

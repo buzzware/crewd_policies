@@ -21,9 +21,9 @@ module CrewdPolicies::Model
 				aRole.each {|r| allow(r,aAbilities.dup) }
 				return
 			end
-			raise "aRole must be a string or a symbol" unless aRole.is_a?(String) or aRole.is_a?(Symbol)
+			raise ::StandardExceptions::Http::InternalServerError.new "aRole must be a string or a symbol" unless aRole.is_a?(String) or aRole.is_a?(Symbol)
 			aRole = aRole.to_s
-			raise "aAbilities must be a Hash" unless aAbilities.is_a? Hash # eg. :write => [:name,:address]
+			raise ::StandardExceptions::Http::InternalServerError.new "aAbilities must be a Hash" unless aAbilities.is_a? Hash # eg. :write => [:name,:address]
 
 			role_rules = (self.roles_rules[aRole] ||= [])
 			conditions = {}
@@ -42,7 +42,7 @@ module CrewdPolicies::Model
 					if fields==true  # special "field" value to mean the record or class
 						rule[:allowed] = true
 					else
-						raise "create, destroy and index must have true as a value, not an array of fields" if a=='create' or a=='destroy' or a=='index'
+						raise ::StandardExceptions::Http::InternalServerError.new "create, destroy and index must have true as a value, not an array of fields" if a=='create' or a=='destroy' or a=='index'
 						rule[:fields] = fields
 					end
 				end
