@@ -3,8 +3,8 @@
 module CrewdPolicies::Model
 
 	def self.included(aClass)
-		aClass.cattr_accessor :roles_rules
-    aClass.roles_rules = {}   # [:sales] => [
+		aClass.class_attribute :roles_rules, instance_predicate: false, instance_accessor: false
+    aClass.roles_rules ||= {}   # [:sales] => [
 															#               {ability: 'read', fields: [:name,:address]}
 															#               {ability: 'destroy', allowed: true}
 															#             ]
@@ -12,6 +12,10 @@ module CrewdPolicies::Model
   end
 
 	module ClassMethods
+
+		def dup_roles_rules(aRR)
+			aRR.deep_dup  # provided by Rails
+		end
 
 		# supports different formats : allow <role>, <abilities> => <attributes>
 		#
@@ -24,6 +28,11 @@ module CrewdPolicies::Model
 			raise ::StandardExceptions::Http::InternalServerError.new "aRole must be a string or a symbol" unless aRole.is_a?(String) or aRole.is_a?(Symbol)
 			aRole = aRole.to_s
 			raise ::StandardExceptions::Http::InternalServerError.new "aAbilities must be a Hash" unless aAbilities.is_a? Hash # eg. :write => [:name,:address]
+
+			# these lines inherit roles_rules from parent classes, then dup them so the parent doesn't get modified
+			superclass_rr = self.superclass && self.superclass.respond_to?(:roles_rules) && self.superclass.roles_rules
+			inheriting_rr = self.roles_rules && superclass_rr && (self.roles_rules.equal? superclass_rr)
+			self.roles_rules = dup_roles_rules(self.roles_rules) if inheriting_rr
 
 			role_rules = (self.roles_rules[aRole] ||= [])
 			conditions = {}
