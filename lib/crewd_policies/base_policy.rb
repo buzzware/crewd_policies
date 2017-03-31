@@ -10,20 +10,20 @@ module CrewdPolicies
     attr_reader :identity, :record
 
     def initialize(identity, record)
-       @identity = identity
-       @record = record
+      @identity = identity
+      @record = record
     end
 
     def model_class
       @policy_class ||= self.class.name.sub(/Policy$/,'').safe_constantize  # record ? record.class
-     end
+    end
 
     def scope
-       Pundit.policy_scope!(identity, model_class)
-     end
+      Pundit.policy_scope!(identity, model_class)
+    end
 
     class Scope
-       attr_reader :identity, :scope
+      attr_reader :identity, :scope
 
       def initialize(identity, scope)
         @identity = identity

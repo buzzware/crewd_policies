@@ -129,11 +129,11 @@ module CrewdPolicies
     def coalesce_field_ability(aAbility)
       aAbility = aAbility.to_s
       case aAbility
-        when 'write','read' then aAbility
-        when 'create','update','edit' then 'write'
-        when 'show','index' then 'read'
-        else
-          aAbility
+      when 'write','read' then aAbility
+      when 'create','update','edit' then 'write'
+      when 'show','index' then 'read'
+      else
+        aAbility
       end
     end
 
@@ -186,24 +186,24 @@ module CrewdPolicies
       unless_cond = conds[:unless]
 
       if_cond = if if_cond.is_a? Symbol
-        send(if_cond)
-      elsif if_cond.is_a? Proc
-        if_cond.call()
-      elsif if_cond==nil
-        true
-      else
-        if_cond
-      end
+                  send(if_cond)
+                elsif if_cond.is_a? Proc
+                  if_cond.call()
+                elsif if_cond==nil
+                  true
+                else
+                  if_cond
+                end
 
       unless_cond = if unless_cond.is_a? Symbol
-        send(unless_cond)
-      elsif unless_cond.is_a? Proc
-        unless_cond.call()
-      elsif unless_cond==nil
-        false
-      else
-        unless_cond
-      end
+                      send(unless_cond)
+                    elsif unless_cond.is_a? Proc
+                      unless_cond.call()
+                    elsif unless_cond==nil
+                      false
+                    else
+                      unless_cond
+                    end
 
       !!if_cond and !unless_cond
     end
@@ -214,12 +214,12 @@ module CrewdPolicies
       aAbility = aAbility.to_s
 
       case aAbility
-        when 'write','read','update','show','edit'
-          inner_query_fields(aAbility).length > 0
-        when 'create','destroy','index'
-          inner_query_resource(aAbility)
-        else
-          internal_server_error! 'this ability is unknown'
+      when 'write','read','update','show','edit'
+        inner_query_fields(aAbility).length > 0
+      when 'create','destroy','index'
+        inner_query_resource(aAbility)
+      else
+        internal_server_error! 'this ability is unknown'
       end
     end
   end

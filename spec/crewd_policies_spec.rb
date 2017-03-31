@@ -114,7 +114,7 @@ context "allow attributes on model then check policy" do
 
       def is_subordinate?
         identity.has_role?('master') && !record.has_role?('master') or
-        identity.has_role?('boss') && !record.has_role?('boss')
+          identity.has_role?('boss') && !record.has_role?('boss')
       end
     end
 

@@ -5,9 +5,9 @@ module CrewdPolicies::Model
   def self.included(aClass)
     aClass.cattr_accessor :roles_rules
     aClass.roles_rules = {}   # [:sales] => [
-                              #               {ability: 'read', fields: [:name,:address]}
-                              #               {ability: 'destroy', allowed: true}
-                              #             ]
+    #               {ability: 'read', fields: [:name,:address]}
+    #               {ability: 'destroy', allowed: true}
+    #             ]
     aClass.send :extend, ClassMethods
   end
 
