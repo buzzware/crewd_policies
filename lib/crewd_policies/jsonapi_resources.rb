@@ -18,7 +18,7 @@ module CrewdPolicies
 
 			def inherited(subclass)
 				super
-				attrs = ::Pundit.policy!(nil,subclass._model_class).all_attributes.map(&:to_sym)
+				attrs = subclass._model_class.column_names.map(&:to_sym)
 				attrs -= [:id]
 				subclass.send(:attributes, *attrs) unless attrs.empty?
       end
@@ -33,7 +33,7 @@ module CrewdPolicies
 		end
 
 		def fetchable_fields
-		  ::Pundit.policy!(context[:user],_model).permitted_attributes_for_read.map(&:to_sym)
+		  ::Pundit.policy!(context[:user],_model).allowed_fields(:read).map(&:to_sym)   # includes assocations
 		end
 	end
 end
