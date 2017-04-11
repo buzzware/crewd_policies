@@ -24,11 +24,13 @@ module CrewdPolicies
       end
 
 			def updatable_fields(context)
-				::Pundit.policy!(context[:user],_model).permitted_attributes_for_update.map(&:to_sym)
+				p = ::Pundit.policy!(context[:user],_model_class)
+				p.allowed_fields(:write).map(&:to_sym)
 		  end
 
-		  def self.creatable_fields(context)
-			  ::Pundit.policy!(context[:user],_model).permitted_attributes_for_create.map(&:to_sym)
+		  def creatable_fields(context)
+			  p = ::Pundit.policy!(context[:user],_model_class)
+			  p.allowed_fields(:write).map(&:to_sym)
 		  end
 		end
 

@@ -90,6 +90,10 @@ module CrewdPolicies
 			record.is_a?(Class) ? record : record.class
 		end
 
+		def record_instance
+			record.is_a?(Class) ? nil : record
+		end
+
 		def allowed?(aAbility,aFields=nil)
 			if aFields
 				pf = allowed_fields(aAbility)
