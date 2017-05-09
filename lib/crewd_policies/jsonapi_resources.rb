@@ -18,7 +18,9 @@ module CrewdPolicies
 
 			def inherited(subclass)
 				super
-				attrs = subclass._model_class.column_names.map(&:to_sym)
+				cls = subclass._model_class
+				attrs = cls.roles_rules.values.flatten.map{|h| h[:fields]}.compact.flatten.uniq.map(&:to_sym)
+				attrs.delete_if { |f| cls.reflections.has_key? f } if cls.respond_to? :reflections
 				attrs -= [:id]
 				subclass.send(:attributes, *attrs) unless attrs.empty?
       end
