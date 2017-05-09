@@ -19,8 +19,8 @@ module CrewdPolicies
 			def inherited(subclass)
 				super
 				cls = subclass._model_class
-				attrs = cls.roles_rules.values.flatten.map{|h| h[:fields]}.compact.flatten.uniq.map(&:to_sym)
-				attrs.delete_if { |f| cls.reflections.has_key? f } if cls.respond_to? :reflections
+				attrs = cls.roles_rules.values.flatten.map{|h| h[:fields]}.compact.flatten.uniq.map(&:to_sym) # all fields from all rules
+				attrs.delete_if { |f| cls.reflections.has_key? f.to_s } if cls.respond_to? :reflections       # remove associations
 				attrs -= [:id]
 				subclass.send(:attributes, *attrs) unless attrs.empty?
       end
